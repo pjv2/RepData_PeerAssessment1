@@ -1,25 +1,171 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+Coursera DSS Reproducible Research Project 1
+============================================
+#### **By Paul Venuto**
+
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a Fitbit, Nike Fuelband, or Jawbone Up. These type of devices are part of the “quantified self” movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+#### Data
+
+The data for this assignment can be downloaded from the course web site: (https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip)
+
+The variables included in this dataset are:  
+**steps:** Number of steps taking in a 5-minute interval (missing values are coded as NA)  
+**date:** The date on which the measurement was taken in YYYY-MM-DD format  
+**interval:** Identifier for the 5-minute interval in which measurement was taken  
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+##### Add all necessary libraries
+
+```{r}
+library(knitr)
+library (dplyr)
+library(lattice)
+library(ggplot2)
+opts_chunk$set(echo = TRUE)
+```
+
+##### Load the data
+
+```{r}
+activity <- read.csv("activity.csv", header = TRUE, sep = ',', colClasses = c("numeric", "character", "integer"), stringsAsFactors = F)
+```
+
+##### Calculate mean number of steps taken per day
+
+```{r}
+complete_days_only <- activity[complete.cases(activity), ]
+step_summary  <-  complete_days_only %>% 
+                  group_by(date) %>% 
+                  summarise(daily_step_count = sum(steps))
+```
+
+##### Plot results for total number of steps taken per day
+
+```{r}
+hist(step_summary$daily_step_count, 
+    main = "Histogram of total steps per day",
+    xlab = "Range of step totals",
+    ylab = "Number of totals in range",
+    border = "green",
+    col = heat.colors(5),
+    las = 1,
+    ylim = c(0, 30))
+```
+
+##### Calculate the mean and median steps per day
+
+````{r}
+mean_steps <- mean(step_summary$daily_step_count, na.rm = TRUE)
+mean_steps
+median_steps <- median(step_summary$daily_step_count, na.rm = TRUE)
+median_steps
+````
+
+##### Calculate the average daily activity pattern
+
+```{r}
+x  <- complete_days_only %>% 
+      group_by(interval) %>% 
+      summarise(avg_interval = mean(steps))
+```
+
+##### Plot results for distribution of average steps per day
+
+```{r}
+plot(x$interval, 
+     x$avg_interval, 
+     type = "l", 
+     las = 1, 
+     col = "chocolate4", 
+     main = "Average Steps within Intervals",
+     col.main = "blue",
+     font.main = 4,
+     xlab = "Daily Intervals",
+     ylab = "Step Averages"
+     )
+```
+
+##### Find which interval had the highest number of average steps
+
+```{r}
+x[which.max(x$avg_interval), ]
+```
+
+###### Impute missing values
+
+Calculate and report the total number of missing values
+```{r}
+nrow(activity)
+nrow(complete_days_only)
+difference <- nrow(activity) - nrow(complete_days_only)
+difference
+````
+
+Generate a series of random integral values that span the range of observations in the original dataset, and create a new dataset with the missing data filled in
+````{r}
+set.seed(1234)
+z  <- floor(runif(nrow(activity), 
+                  min = min(activity$steps, na.rm = T), 
+                  max = max(activity$steps, na.rm = T)/10))
+w <- which(is.na(activity$steps))
+activity$steps[w] <- z[w]
+```
+
+Calculate total steps/day compared with augmented dataset containing imputed values, and plot it
+```{r}
+complete_data  <- activity %>% 
+                  group_by(date) %>% 
+                  summarise(daily_step_count = sum(steps))
+
+hist(complete_data$daily_step_count, 
+    breaks = 10,
+    main = "Histogram of total steps per day",
+    xlab = "Range of step totals",
+    ylab = "Number of totals in range",
+    border = "green",
+    col = heat.colors(12),
+    las = 1,
+    ylim = c(0, 25))
+```
+
+Determine if imputing data affects the mean and median of total daily number of steps calculated from the original dataset
+
+````{r}
+mean_steps <- mean(complete_data$daily_step_count, na.rm = TRUE)
+mean_steps
+median_steps <- median(complete_data$daily_step_count, na.rm = TRUE)
+median_steps
+````
+
+The mean of the augmented dataset is 10858.38 and the median is 11196, which are negligible differences from the original dataset (10766.19 and 10765 respectively)
+
+##### Determine if there are differences in activity patterns between weekdays and weekends
+
+```{r}
+activity$date <- as.POSIXct(activity$date)
+activity$dayType  <- ifelse(weekdays(activity$date) %in% c("Saturday", "Sunday"), "weekend", "weekday")
+activity$dayType  <- as.factor(activity$dayType)
+q  <- activity %>% 
+      group_by(dayType, interval) %>% 
+      summarise(daily_step_count = sum(steps))
+```
+
+##### Create a time series plot of total steps within intervals comparing weekdays vs weekends
+
+```{r}
+with(q, 
+      xyplot(daily_step_count ~ interval | dayType, 
+      type = "l",      
+      main = "Total Steps within Intervals",
+      xlab = "Daily Intervals",
+      ylab = "Total Steps"))
+```
+
+The graphs suggest that the user takes far fewer steps on the weekend. This is helpful information for the user to incorporate more activity and/or exercise on the weekends to compensate for the change in activity pattern.
+      
 
 
-## Loading and preprocessing the data
 
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
