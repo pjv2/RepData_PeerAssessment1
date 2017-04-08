@@ -23,7 +23,7 @@ library(knitr)
 library (dplyr)
 library(lattice)
 library(ggplot2)
-opts_chunk$set(echo = TRUE)
+opts_chunk$set(echo = TRUE, fig.height=3, fig.width=4)
 ```
 
 ##### Load the data
